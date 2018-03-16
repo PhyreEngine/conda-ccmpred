@@ -1,0 +1,65 @@
+{% set name = "ccmpred" %}
+{% set version = environ["GIT_FULL_HASH"][0:7] %}
+{% if "GIT_DESCRIBE_TAG" in environ %}
+{%     set version = environ["GIT_DESCRIBE_TAG"] | replace("v", "") | replace("-", "_") %}
+{%     if "GIT_DESCRIBE_NUMBER" in environ and environ["GIT_DESCRIBE_NUMBER"] | int > 0 %}
+{%         set version = version ~ "_" ~ environ["GIT_BUILD_STR"] %}
+{%     endif %}
+{% endif %}
+# sha256 is the prefered checksum -- you can get it for a file with:
+#  `openssl sha256 <file name>`.
+# You may need the openssl package, available on conda-forge
+#  `conda install openssl -c conda-forge``
+
+package:
+  name: {{ name | lower }}
+  version: {{ version }}
+
+source:
+  git_url: https://github.com/soedinglab/CCMpred.git
+  git_rev: master
+  patches:
+  - cmake.patch
+
+build:
+  string: {{ architecture }}_{{ environ.get("BUILD_NUMBER", 0) }}
+  features:
+  - arch_{{ architecture }}
+
+  script: |
+    # Strip -march, -mtune and -O flag from default conda flags.
+    # We are building architecture-specific packages, so this is fine.
+    export CFLAGS=$(
+        echo "$CFLAGS" | sed \
+        -e 's/-O[^ ]\+/-O3/' \
+        -e 's/-march=[^ ]\+/-march={{ architecture }}/' \
+        -e 's/-mtune=[^ ]\+//')
+    export CPPFLAGS=$(echo "$CPPFLAGS" | sed -e 's/-O[^ ]\+//')
+
+    mkdir build-{{ architecture }}
+    cd build-{{ architecture }}
+    cmake \
+     -G "Unix Makefiles" \
+     -DWITH_CURSES=OFF \
+     -DCMAKE_INSTALL_PREFIX=$PREFIX ..
+    make VERBOSE=1
+    make install
+
+requirements:
+  run:
+  - jansson
+  - libuuid
+  - msgpack-c
+  - openmp
+  host:
+  - jansson
+  - libuuid
+  - msgpack-c
+  - openmp
+  build:
+  - {{ compiler('c') }}
+  - cmake
+
+about:
+  home: https://github.com/soedinglab/CCMpred
+  license: AGPL3
