@@ -9,7 +9,7 @@ tool for detecting residue-residue contacts from correlated mutations.
 
 ## Building
 
-You should be able to build this package by simply running `conda build .`.
+You should be able to build this package by simply running `./build`.
 This package will build binaries for several different CPU architectures, each
 with all optimisations enabled.
 
